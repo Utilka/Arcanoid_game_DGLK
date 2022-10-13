@@ -43,11 +43,13 @@ public:
 	}
 
 	virtual bool Tick() {
+        // modify player position, but limit it between 0 and playing_width-player.size_x
         player.l_x = max(min(
                 player.l_x + playerMoveRight * 1 - playerMoveLeft * 1,
-                playing_width-player.s_x),0);
+                double(playing_width-player.s_x)),0.0);
         ball.l_x+=ball.speed_x;
         ball.l_y+=ball.speed_y;
+        ball.checkAllCollisions(&player);
 //		drawTestBackground();
         ball.Draw();
         player.Draw();

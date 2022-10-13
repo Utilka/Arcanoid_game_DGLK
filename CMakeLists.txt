@@ -11,7 +11,9 @@ link_directories(framework ${PROJECT_SOURCE_DIR})
 
 add_executable(Arcanoid_CMake
         Framework.h
-        game.cpp GameObject.cpp GameObject.h)
+        GameObject.h
+        GameObject.cpp
+        game.cpp)
 
 target_link_libraries(Arcanoid_CMake FrameworkRelease_x64)
 set_target_properties(Arcanoid_CMake PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR})

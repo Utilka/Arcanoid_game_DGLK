@@ -10,24 +10,24 @@ namespace MyGame {
     class GameObject {
     public:
         Sprite *sprite;
-        int l_x, l_y;
+        double l_x, l_y;
         int s_x, s_y;
 
         GameObject();
 
-        GameObject(int location_x, int location_y, int size_x, int size_y);
+        GameObject(double location_x, double location_y, int size_x, int size_y);
 
         explicit GameObject(const char *spritePath);
 
-        GameObject(const char *spritePath, int location_x, int location_y, int size_x, int size_y);
+        GameObject(const char *spritePath, double location_x, double location_y, int size_x, int size_y);
 
         explicit GameObject(Sprite *newSprite);
 
-        GameObject(Sprite *newSprite, int location_x, int location_y, int size_x, int size_y);
+        GameObject(Sprite *newSprite, double location_x, double location_y, int size_x, int size_y);
 
         void changeSprite(Sprite *newSprite);
 
-        void changeLocation(int location_x, int location_y);
+        void changeLocation(double location_x, double location_y);
 
         void changeSize(int size_x, int size_y);
 
@@ -60,11 +60,11 @@ namespace MyGame {
         Ball();
         Ball(const char *spritePath, int playingWidth, int playingHeight);
 
-        void ballLogic(Platform* player,GameObject objectList[],int objectListSize);
+        void checkAllCollisions(Platform* player);
 
-        bool checkCollision(GameObject *otherGameObject);
+        void checkAllCollisions(Platform* player,GameObject objectList[],int objectListSize);
 
-        bool changeSpeed(double newSpeed_x,double newSpeed_y);
+        bool checkCollision(GameObject *targetGO);
 
         void Start(int target_x, int target_y);
 
