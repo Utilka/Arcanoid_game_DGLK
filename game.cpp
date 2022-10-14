@@ -10,6 +10,7 @@ using namespace MyGame;
 
 #define NUMBER_OF_BLOCKS 64
 
+Sprite* background;
 Block blockList[NUMBER_OF_BLOCKS];
 Platform player;
 Ball ball;
@@ -37,6 +38,8 @@ public:
         int w_w, w_h;
         getScreenSize(w_w, w_h);
         playing_width = w_w;
+        background = createSprite("./data/66-backgroud.jpg");
+        setSpriteSize(background,w_w,w_h);
         player = Platform("./data/50-Breakout-Tiles.png", w_w, w_h);
 
         ball = Ball("./data/65-amogus.png", w_w, w_h);
@@ -73,6 +76,7 @@ public:
     }
 
     virtual bool Tick() {
+        drawSprite(background,0,0);
         // modify player position, but limit it between 0 and playing_width-player.size_x
         player.l_x = max(min(
                 player.l_x + playerMoveRight * 1 - playerMoveLeft * 1,
