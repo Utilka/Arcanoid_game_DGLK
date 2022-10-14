@@ -54,7 +54,6 @@ namespace MyGame {
 
     class Ball : public GameObject {
     public:
-        double l_x, l_y;
         double speed_x, speed_y;
 
         Ball();
@@ -66,9 +65,13 @@ namespace MyGame {
 
         bool checkCollision(GameObject *targetGO);
 
-        void Start(int target_x, int target_y);
+        enum collisionSide {none,vertical,horizontal,both};
+        // here none means that target was colliding with source object (ball) on previous tick
+        // vertical - object hit left or right side, horizontal - top or bottom, both - edge
+        collisionSide getCollisionSide(GameObject *targetGO);
 
-        void Draw();
+        void Launch(int target_x, int target_y);
+
     };
 
     class Floor : public Wall {
