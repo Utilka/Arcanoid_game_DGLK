@@ -1,2 +1,2 @@
 # Arcanoid_game_DGLK
-test task for dragonslake games
+test task for dragonslake
