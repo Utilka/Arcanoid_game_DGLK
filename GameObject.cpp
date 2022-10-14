@@ -4,6 +4,7 @@
 
 #include <iostream>
 #include <cmath>
+#include <string>
 #include "GameObject.h"
 #include "Framework.h"
 
@@ -11,53 +12,7 @@
 
 
 namespace MyGame {
-    GameObject::GameObject() {
-        l_x = 0;
-        l_y = 0;
-        s_x = 0;
-        s_y = 0;
-    }
-
-
-    GameObject::GameObject(double location_x, double location_y, int size_x, int size_y) {
-        l_x = location_x;
-        l_y = location_y;
-        s_x = size_x;
-        s_y = size_y;
-    }
-
-    GameObject::GameObject(const char *spritePath) {
-        sprite = createSprite(spritePath);
-        l_x = 0;
-        l_y = 0;
-        getSpriteSize(sprite, s_x, s_y);
-    }
-
-    GameObject::GameObject(const char *spritePath, double location_x, double location_y, int size_x,
-                                   int size_y) {
-        sprite = createSprite(spritePath);
-        l_x = location_x;
-        l_y = location_y;
-        s_x = size_x;
-        s_y = size_y;
-        setSpriteSize(sprite, s_x, s_y);
-    }
-
-    GameObject::GameObject(Sprite *newSprite) {
-        sprite = newSprite;
-        l_x = 0;
-        l_y = 0;
-        getSpriteSize(sprite, s_x, s_y);
-    }
-
-    GameObject::GameObject(Sprite *newSprite, double location_x, double location_y, int size_x, int size_y) {
-        sprite = newSprite;
-        l_x = location_x;
-        l_y = location_y;
-        s_x = size_x;
-        s_y = size_y;
-        setSpriteSize(sprite, s_x, s_y);
-    }
+    GameObject::GameObject() = default;
 
     void GameObject::changeSprite(Sprite *newSprite) {
         sprite = newSprite;
@@ -96,15 +51,10 @@ namespace MyGame {
         setSpriteSize(sprite, s_x, s_y);
     }
 
-    Ball::Ball() {
-        l_x = 0;
-        l_y = 0;
-        s_x = 0;
-        s_y = 0;
-    }
+    Ball::Ball() = default;
 
     Ball::Ball(const char *spritePath, int playingWidth,
-                       int playingHeight) {
+               int playingHeight) {
         sprite = createSprite(spritePath);
         s_x = playingWidth / 30;
         s_y = playingWidth / 30;
@@ -137,18 +87,16 @@ namespace MyGame {
     }
 
     void
-    Ball::checkAllCollisions(Platform *player, GameObject *objectList, int objectListSize) {
-
-    }
-
-    void Ball::checkAllCollisions(Platform *player) {
+    Ball::checkAllCollisions(Platform *player, Block *blockList, int blockListSize) {
         int bottomSide = 600 - this->s_y;
         int rightSide = 800 - this->s_x;
 
+        //TODO change to branchless?
         if ((this->l_x <= 0) || (this->l_x >= rightSide)) {
             std::cout << "amongus" << std::endl;
             this->speed_x = -speed_x;
         }
+        //TODO change to branchless?
         if ((this->l_y <= 0) || (this->l_y >= bottomSide)) {
             std::cout << "amongus" << std::endl;
             this->speed_y = -speed_y;
@@ -164,7 +112,26 @@ namespace MyGame {
             if ((side & Ball::collisionSide::horizontal)) { this->speed_y = -speed_y; }
         }
 
+        for (int i = 0; i < blockListSize; i++) {
+            //TODO change to branchless? and add better dead block collision removal
+            if (this->checkCollision(&blockList[i])&& (blockList[i].hitPoints>0)) {
+                std::cout << "amongus" << std::endl;
+                collisionSide side = this->getCollisionSide(player);
+                std::cout << side << std::endl;
+                std::cout << (side & Ball::collisionSide::vertical) << std::endl;
+                std::cout << (side & Ball::collisionSide::horizontal) << std::endl;
+                if ((side & Ball::collisionSide::vertical)) { this->speed_x = -speed_x; } //TODO change to branchless?
+                if ((side & Ball::collisionSide::horizontal)) { this->speed_y = -speed_y; }
 
+                blockList[i].damage();
+
+
+            }
+        }
+
+    }
+
+    void Ball::checkAllCollisions(Platform *player) {
 
     }
 
@@ -175,13 +142,14 @@ namespace MyGame {
 // true if one rectangle is above ir below other
 //    (((l_y + s_y) < targetGO->l_y) || ((targetGO->l_y + targetGO->s_y) < l_y))
 // OR them together and take NOT from it to return true when rectangles collide
+
     bool Ball::checkCollision(GameObject *targetGO) {
         return !(((l_x > (targetGO->l_x + targetGO->s_x)) || (targetGO->l_x > (l_x + s_x))) ||
                  (((l_y + s_y) < targetGO->l_y) || ((targetGO->l_y + targetGO->s_y) < l_y)));
     }
 
 // to get direction from which collision occurred its easiest to test both collision conditions
-// on previous state of the ball that was in on tick before the collision and see which condition is no longer satisfied
+// on state of the ball that was in on tick before the collision and see which condition is no not satisfied
     Ball::collisionSide Ball::getCollisionSide(GameObject *targetGO) {
         double prevL_x = l_x - speed_x;
         double prevL_y = l_y - speed_y;
@@ -191,4 +159,39 @@ namespace MyGame {
 
         return collisionSide(verticalCollision + horizontalCollision * 2);
     }
+
+    Block::Block() = default;
+
+    Block::Block(int spriteSelector, int initHitPoints, double location_x, double location_y, int width, int height) {
+
+//        char* s1 [128];
+//        char* s2 [128];
+//        std::sprintf(reinterpret_cast<char *>(s1), "./data/%d-Breakout-Tiles.png", spriteSelector);
+//        std::sprintf(reinterpret_cast<char *>(s2), "./data/%d-Breakout-Tiles.png", spriteSelector + 1);
+        undamagedSprite = createSprite("./data/15-Breakout-Tiles.png");
+        damagedSprite = createSprite("./data/16-Breakout-Tiles.png");
+        sprite = undamagedSprite;
+
+        hitPoints = initHitPoints;
+
+        s_x = width;
+        s_y = height;
+        l_x = location_x;
+        l_y = location_y;
+        setSpriteSize(undamagedSprite, s_x, s_y);
+        setSpriteSize(damagedSprite, s_x, s_y);
+    }
+
+    void Block::damage(int value) {
+        hitPoints -= value;
+        sprite = damagedSprite;
+    }
+
+    void Block::Draw() {
+        if (hitPoints > 0) {
+            drawSprite(sprite, l_x, l_y);
+        }
+    }
+
+
 }

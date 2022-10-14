@@ -1,11 +1,16 @@
 #include "Framework.h"
 #include "GameObject.h"
 #include <algorithm>
+#include <iostream>
 //#include <cstddef>
 using namespace std;
 using namespace MyGame;
 
+#define BLOCK_DIMENSIONS 128/384
 
+#define NUMBER_OF_BLOCKS 64
+
+Block blockList[NUMBER_OF_BLOCKS];
 Platform player;
 Ball ball;
 
@@ -34,9 +39,31 @@ public:
         playing_width = w_w;
         player = Platform("./data/50-Breakout-Tiles.png", w_w, w_h);
 
-        ball = Ball("./data/png_transparent_among_us_icon_crewmate_imposter_astronaut_cartoon.png", w_w, w_h);
+        ball = Ball("./data/65-amogus.png", w_w, w_h);
 
         // init game blocks
+        int blockWidth = w_w / 16;
+        int rowHeight = blockWidth * BLOCK_DIMENSIONS;
+        int topPadding = w_h / 20;
+
+//        //example of solid wall spawn
+//        for (int i = 0; i < NUMBER_OF_BLOCKS; i++) {
+//            // lowest 4 bits of i denote column index, rest bits denote row index
+//            blockList[i] = Block(15, 1,
+//                                 blockWidth * (i & 15), topPadding + rowHeight * ((i >> 4)),
+//                                 blockWidth, rowHeight);
+//
+//        }
+
+        //example of checkers spawn
+        for (int i = 0; i < NUMBER_OF_BLOCKS; i++) {
+            // lowest 4 bits of i denote column index, rest bits denote row index
+            blockList[i] = Block(15, 1,
+                                 blockWidth * (i & 15), topPadding + rowHeight * (2 * (i >> 4) + (i & 1)),
+                                 blockWidth, rowHeight);
+
+        }
+
 
         return true;
     }
@@ -53,8 +80,8 @@ public:
         ball.l_x += ball.speed_x;
         ball.l_y += ball.speed_y;
 
-        ball.checkAllCollisions(&player);
-
+        ball.checkAllCollisions(&player,blockList,NUMBER_OF_BLOCKS);
+        for (Block block: blockList) { block.Draw(); }
 //		drawTestBackground();
         ball.Draw();
         player.Draw();

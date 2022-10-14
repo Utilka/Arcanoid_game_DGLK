@@ -9,21 +9,11 @@
 namespace MyGame {
     class GameObject {
     public:
-        Sprite *sprite;
-        double l_x, l_y;
-        int s_x, s_y;
+        Sprite *sprite{};
+        double l_x{}, l_y{};
+        int s_x{}, s_y{};
 
         GameObject();
-
-        GameObject(double location_x, double location_y, int size_x, int size_y);
-
-        explicit GameObject(const char *spritePath);
-
-        GameObject(const char *spritePath, double location_x, double location_y, int size_x, int size_y);
-
-        explicit GameObject(Sprite *newSprite);
-
-        GameObject(Sprite *newSprite, double location_x, double location_y, int size_x, int size_y);
 
         void changeSprite(Sprite *newSprite);
 
@@ -31,7 +21,7 @@ namespace MyGame {
 
         void changeSize(int size_x, int size_y);
 
-        void Draw();
+        virtual void Draw();
     };
 
     class Platform : public GameObject {
@@ -45,36 +35,48 @@ namespace MyGame {
     };
 
     class Block : public GameObject {
+    public:
 
-    };
+        Sprite *undamagedSprite{};
+        Sprite *damagedSprite{};
 
-    class Wall : public GameObject {
+        int maxPoints{1};
+        int hitPoints{1};
 
+        Block();
+
+        // spriteSelector expects index from filename of undamaged block
+        Block(int spriteSelector, int initHitPoints, double location_x, double location_y, int width, int height);
+
+        void damage(int value = 1);
+
+        void Draw();
     };
 
     class Ball : public GameObject {
     public:
-        double speed_x, speed_y;
+        double speed_x{}, speed_y{};
 
         Ball();
+
         Ball(const char *spritePath, int playingWidth, int playingHeight);
 
-        void checkAllCollisions(Platform* player);
+        void checkAllCollisions(Platform *player);
 
-        void checkAllCollisions(Platform* player,GameObject objectList[],int objectListSize);
+        void checkAllCollisions(Platform *player, Block *blockList, int blockListSize);
 
         bool checkCollision(GameObject *targetGO);
 
-        enum collisionSide {none,vertical,horizontal,both};
         // here none means that target was colliding with source object (ball) on previous tick
         // vertical - object hit left or right side, horizontal - top or bottom, both - edge
+        enum collisionSide {none, vertical, horizontal, both};
         collisionSide getCollisionSide(GameObject *targetGO);
 
         void Launch(int target_x, int target_y);
 
     };
 
-    class Floor : public Wall {
+    class Floor {
 
     };
 
