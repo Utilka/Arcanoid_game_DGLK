@@ -9,11 +9,14 @@
 namespace MyGame {
     class GameObject {
     public:
-        Sprite *sprite{};
+
+        static Sprite *sprite;
         double l_x{}, l_y{};
         int s_x{}, s_y{};
 
         GameObject();
+
+        GameObject(double location_x, double location_y, int size_x, int size_y);
 
         void changeSprite(Sprite *newSprite);
 
@@ -26,9 +29,11 @@ namespace MyGame {
 
     class Platform : public GameObject {
     public:
+        static Sprite *sprite;
         Platform();
 
-        Platform(const char *spritePath, int playingWidth, int playingHeight);
+        Platform(double location_x, double location_y, int size_x, int size_y);
+        void Draw() override;
 
         void ApplyAbility();
 
@@ -37,8 +42,8 @@ namespace MyGame {
     class Block : public GameObject {
     public:
 
-        Sprite *undamagedSprite{};
-        Sprite *damagedSprite{};
+        static Sprite *sprite;
+        static Sprite *blockSprite[4];
 
         int maxPoints{1};
         int hitPoints{1};
@@ -50,18 +55,17 @@ namespace MyGame {
 
         void damage(int value = 1);
 
-        void Draw();
+        void Draw() override;
     };
 
     class Ball : public GameObject {
     public:
-        double speed_x{}, speed_y{};
+        static Sprite *sprite;
+        double baseSpeed_x{}, baseSpeed_y{},modifier{1};
 
         Ball();
 
-        Ball(const char *spritePath, int playingWidth, int playingHeight);
-
-        void checkAllCollisions(Platform *player);
+        Ball(double location_x, double location_y, int size_x, int size_y);
 
         void checkAllCollisions(Platform *player, Block *blockList, int blockListSize);
 
@@ -72,11 +76,34 @@ namespace MyGame {
         enum collisionSide {none, vertical, horizontal, both};
         collisionSide getCollisionSide(GameObject *targetGO);
 
-        void Launch(int target_x, int target_y);
+        void launch(int target_x, int target_y);
 
+        double getSpeed_x() const;
+        double getSpeed_y() const;
+        // modifier value is limited between 0.4 and 3
+        void setModifier(double newValue);
+
+        void Draw() override;
     };
 
-    class Floor {
+    class Ability : public Ball {
+    public:
+
+        static Sprite *abilitySprite[3];
+        bool active{0};
+        int effect{0};
+        int resetPos_x{0}, resetPos_y{0};
+
+        Ability();
+        Ability(int ef, double location_x, double location_y,int size_x, int size_y);
+
+        void Draw() override;
+        void spawn(int target_x, int target_y);
+
+        void reset();
+
+        void checkAllCollisions(Platform *player);
+
 
     };
 
