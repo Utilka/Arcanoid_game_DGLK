@@ -10,9 +10,11 @@
 #include "Framework.h"
 
 #define INIT_BALL_SPEED 1
-
+int screenWidth, screenHeight;
+bool gameStart = false;
 bool gameOver = false;
 bool winAnimation = false;
+unsigned int gameEndTimer;
 
 #define RELATIVE_PLATFORM_WIDTH 1/8
 #define PLATFORM_DIMENSIONS 128/485
@@ -26,7 +28,6 @@ namespace MyGame {
         l_y = location_y;
         s_x = size_x;
         s_y = size_y;
-        currentSprite = 0;
         tickCount = 1;
     }
 
@@ -43,7 +44,7 @@ namespace MyGame {
     void GameObject::changeSize(int size_x, int size_y) {
         s_x = size_x;
         s_y = size_y;
-        setSpriteSize(sprite, s_x, s_y);
+//        setSpriteSize(sprite, s_x, s_y);
     }
 
     void GameObject::draw() {
@@ -57,8 +58,13 @@ namespace MyGame {
         s_y = 0;
     }
 
-    Platform::Platform(double location_x, double location_y, int size_x, int size_y) :
-            GameObject(location_x, location_y, size_x, size_y) {
+    Platform::Platform(double location_x, double location_y, int size_x, int size_y, double initSpeed_x) {
+        l_x = location_x;
+        l_y = location_y;
+        s_x = size_x;
+        s_y = size_y;
+        baseSpeed_x = initSpeed_x;
+        currentSprite = 0;
 
     }
 
@@ -66,17 +72,17 @@ namespace MyGame {
 //        drawSprite(sprite, l_x, l_y);
         drawSprite(platformSprites[currentSprite], l_x, l_y);
 
-        if (tickCount == 20){
-            currentSprite ++;
+        if (tickCount == 20) {
+            currentSprite++;
             tickCount = 0;
         }
-        if (currentSprite == 3){
+        if (currentSprite == 3) {
             currentSprite = 0;
         }
         tickCount++;
     }
 
-    void Platform::initSprites(int size_x,int size_y) {
+    void Platform::initSprites(int size_x, int size_y) {
         for (int i = 0; i < 3; i++) {
             std::string n = std::to_string(i);
 
@@ -90,69 +96,117 @@ namespace MyGame {
 
     }
 
+    void Platform::applyModifier(int effect) {
+
+        modifierList.emplace_back(((effect == 1) * 0.4 + (effect == 0) * -0.4), 20000);
+
+        std::cout << std::endl;
+        for (std::pair<double, int> i: modifierList) {
+            printf(" %f | %d\n", i.first, i.second);
+        }
+
+    }
+
+    double Platform::getSpeed_x() {
+        double modSum = 1.0;
+
+        for (std::pair<double, int> &i: modifierList) {
+            modSum += i.first;
+        }
+        modSum = std::min(std::max(modSum, 0.5), 2.0);
+        return baseSpeed_x * modSum;
+    }
+
+    void Platform::checkModifiers() {
+
+        for (int i = 0; i < modifierList.size(); i++) {
+            modifierList[i].second -= 1;
+            if (modifierList[i].second == 0) {
+                modifierList.erase(modifierList.begin() + i - 1);
+                i--;
+                std::cout << std::endl;
+                for (std::pair<double, int> i: modifierList) {
+                    printf(" %f | %d\n", i.first, i.second);
+                }
+
+            }
+        }
+
+    }
 
 
     Ball::Ball() = default;
+
     Ball::Ball(double location_x, double location_y, int size_x, int size_y) :
             GameObject(location_x, location_y, size_x, size_y) {
 
+        currentSprite = 0;
         baseSpeed_x = 0;
         baseSpeed_y = 0;
         modifier = 1;
 
     }
 
-    void Ball::ChangeSize(int multiplier) {
+    void Ball::ChangeSize(int new_s_x, int new_s_y) {
         for (int i = 0; i < 36; i++) {
-            setSpriteSize(MyGame::Ball::ballSprites[i], s_x*multiplier, s_y*multiplier);
+            setSpriteSize(MyGame::Ball::ballSprites[i], new_s_x, new_s_y);
         }
+        GameObject::changeSize(new_s_x, new_s_y);
+    }
+
+    void Ball::launch(int target_x, int target_y) {
+//        baseSpeed_x = double(target_x - l_x - s_x / 2) / 100;
+//        baseSpeed_y = double(target_y - l_y - s_y / 2) / 100;
+        double relative_target_x = (double(target_x) - l_x - double(s_x) / 2);
+        double relative_target_y = (double(target_y) - l_y - double(s_y) / 2);
+        relativeLaunch(relative_target_x, relative_target_y);
     }
 
 // launches a ball into given direction with predetermined speed
-    void Ball::launch(int target_x, int target_y) {
-        baseSpeed_x = double(target_x - l_x - s_x / 2) / 100;
-        baseSpeed_y = double(target_y - l_y - s_y / 2) / 100;
-//    double relative_target_x = double(double(target_x) - l_x - double(s_x) / 2);
-//    double relative_target_y = double(double(target_y) - l_y - double(s_y) / 2);
-//
-//    printf("relative_target_x: %f | relative_target_y: %f\n",relative_target_x,relative_target_y);
-//
-//    const double predetVectorLength = std::pow(INIT_BALL_SPEED,2);
-//    double targetVectorLength = std::pow(relative_target_x,2) + std::pow(relative_target_y,2);
-//    double scaleDifference = std::sqrt(predetVectorLength/targetVectorLength);
-//    printf("predetVectorLength: %f | targetVectorLength: %f | scaleDifference: %f\n",predetVectorLength,targetVectorLength,scaleDifference );
-//
-//    baseSpeed_x = relative_target_x*scaleDifference;
-//    baseSpeed_y = relative_target_y*scaleDifference;
-//    printf("baseSpeed_x: %f | baseSpeed_y: %f | vector length: %f\n\n",baseSpeed_x,baseSpeed_y,std::sqrt(std::pow(baseSpeed_x,2) + std::pow(baseSpeed_y,2)));
+    void Ball::relativeLaunch(double relative_target_x, double relative_target_y) {
+
+//        printf("relative_target_x: %f | relative_target_y: %f\n", relative_target_x, relative_target_y);
+
+        const double predetVectorLength = std::pow(INIT_BALL_SPEED, 2);
+        double targetVectorLength = std::pow(relative_target_x, 2) + std::pow(relative_target_y, 2);
+        double scaleDifference = std::sqrt(predetVectorLength / targetVectorLength);
+//        printf("predetVectorLength: %f | targetVectorLength: %f | scaleDifference: %f\n", predetVectorLength,
+//               targetVectorLength, scaleDifference);
+
+        baseSpeed_x = relative_target_x * scaleDifference;
+        baseSpeed_y = relative_target_y * scaleDifference;
+//        printf("baseSpeed_x: %f | baseSpeed_y: %f | vector length: %f\n\n", baseSpeed_x, baseSpeed_y,
+//               std::sqrt(std::pow(baseSpeed_x, 2) + std::pow(baseSpeed_y, 2)));
+
+    }
+
+    void Ball::scalingLaunch(int target_x, int target_y) {
+        baseSpeed_x = double(target_x - l_x - s_x / 2) / 500;
+        baseSpeed_y = double(target_y - l_y - s_y / 2) / 500;
     }
 
     void
     Ball::checkAllCollisions(Platform *player, Block *blockList, int blockListSize) {
-        int bottomSide = 600 + (this->s_y * 5);
-        int rightSide = 800 - this->s_x;
+        int bottomSide = screenHeight + (this->s_y * 5);
+        int rightSide = screenWidth - this->s_x;
         //TODO read actual window size
 
         //TODO change to branchless?
         if ((this->l_x <= 0) || (this->l_x >= rightSide)) {
             baseSpeed_x = -baseSpeed_x;
-            setModifier(modifier+0.1);
+            setModifier(modifier + 0.1);
 
 
         }
         //TODO change to branchless?
         if (this->l_y <= 0) {
             baseSpeed_y = -baseSpeed_y;
-            setModifier(modifier+0.1);
+            setModifier(modifier + 0.1);
         }
 
         if (this->l_y >= bottomSide) {
-            std::cout << "Game Over" << std::endl;
-            gameOver = true;
-            Ball::ChangeSize(3);
-            int w_w, w_h;//window_width window_height
-            getScreenSize(w_w, w_h);
-            changeLocation(w_w/2 - s_x, 0 - s_y*5);
+            gameOverAction();
+//            gameWinAction();
         }
 
 //        if (this->l_y >= bottomSide) {
@@ -162,8 +216,14 @@ namespace MyGame {
         if (this->checkCollision(player)) {
 //            std::cout << "amongus" << std::endl;
             collisionSide side = this->getCollisionSide(player);
-            if ((side & Ball::collisionSide::vertical)) { this->baseSpeed_x = -baseSpeed_x; } //TODO change to branchless?
+            if ((side &
+                 Ball::collisionSide::vertical)) { this->baseSpeed_x = -baseSpeed_x; } //TODO change to branchless?
             if ((side & Ball::collisionSide::horizontal)) { this->baseSpeed_y = -baseSpeed_y; }
+
+            relativeLaunch(
+                    int(((this->l_x + double(this->s_x / 2)) - (player->l_x + double(player->s_x / 2))) * 2),
+                    int(((this->l_y + double(this->s_y / 2)) - (player->l_y + double(player->s_y / 2))) * 2)
+            );
 
         }
 
@@ -175,16 +235,42 @@ namespace MyGame {
 //                std::cout << side << std::endl;
 //                std::cout << (side & Ball::collisionSide::vertical) << std::endl;
 //                std::cout << (side & Ball::collisionSide::horizontal) << std::endl;
-                if ((side & Ball::collisionSide::vertical)) { this->baseSpeed_x = -baseSpeed_x; } //TODO change to branchless?
+                if ((side &
+                     Ball::collisionSide::vertical)) { this->baseSpeed_x = -baseSpeed_x; } //TODO change to branchless?
                 if ((side & Ball::collisionSide::horizontal)) { this->baseSpeed_y = -baseSpeed_y; }
+
+                setModifier(modifier - 0.1);
 
                 blockList[i].damage();
 
-                setModifier(modifier-0.1);
+                bool shouldNotWin = false;
+                for (int i = 0; i < blockListSize; i++) {
+                    shouldNotWin += ((blockList[i].hitPoints != 0) && (!blockList[i].isInd));
+                }
+                if ( !shouldNotWin) { gameWinAction();}
 
             }
         }
+    }
 
+    void Ball::gameOverAction() {
+        gameEndTimer = getTickCount();
+
+        std::cout << "Game Over" << std::endl;
+        gameOver = true;
+        Ball::ChangeSize(s_x * 3, s_y * 3);
+
+        changeLocation(screenWidth / 2 - s_x, 0 - s_y * 5);
+    }
+
+    void Ball::gameWinAction() {
+
+        gameEndTimer = getTickCount();
+        std::cout << "Game Over" << std::endl;
+        winAnimation = true;
+        Ball::ChangeSize(s_x * 3, s_y * 3);
+        //TODO Change movement speed
+        changeLocation(screenWidth / 2 - s_x, screenHeight / 2 - s_y);
     }
 
 // to check for collision we will use oneline branchless logic statement
@@ -219,11 +305,11 @@ namespace MyGame {
     void Ball::draw() {
         drawSprite(ballSprites[currentSprite], l_x, l_y);
 
-        if (tickCount == 20){
-            currentSprite ++;
+        if (tickCount == 20) {
+            currentSprite++;
             tickCount = 0;
         }
-        if (currentSprite == 36){
+        if (currentSprite == 36) {
             currentSprite = 0;
         }
         tickCount++;
@@ -238,7 +324,7 @@ namespace MyGame {
     }
 
     void Ball::setModifier(double newValue) {
-        modifier = std::max(std::min(newValue,2.0),0.4);
+        modifier = std::max(std::min(newValue, 2.0), 0.4);
     }
 
     void Ball::initSprites(int size_x, int size_y) {
@@ -252,7 +338,6 @@ namespace MyGame {
             MyGame::Ball::ballSprites[i] = createSprite(spriteName);
             setSpriteSize(MyGame::Ball::ballSprites[i], size_x, size_y);
         }
-
     }
 
 
@@ -264,16 +349,17 @@ namespace MyGame {
         s_y = height;
         l_x = location_x;
         l_y = location_y;
+        isInd = initHitPoints == INT_MAX;
     }
 
     void Block::damage(int value) {
-        hitPoints -= value;
+        hitPoints -= (value && !isInd);
     }
 
     void Block::draw() {
 
-            drawSprite(blockSprite[std::min(hitPoints,3)], l_x, l_y);
-        }
+        drawSprite(blockSprite[std::min(hitPoints, 3)], l_x, l_y);
+    }
 
     void Block::initSprites(int size_x, int size_y) {
         Block::blockSprite[0] = createSprite("data/0-Block.png");
@@ -290,53 +376,52 @@ namespace MyGame {
 
     Ability::Ability(int ef, double location_x, double location_y, int size_x, int size_y) {
         effect = ef;
-        resetPos_x=int(location_x);
-        resetPos_y=int(location_y);
-        l_x=location_x;
-        l_y=location_y;
-        s_x=size_x;
-        s_y=size_y;
+        resetPos_x = int(location_x);
+        resetPos_y = int(location_y);
+        l_x = location_x;
+        l_y = location_y;
+        s_x = size_x;
+        s_y = size_y;
         baseSpeed_x = 0;
         baseSpeed_y = 0;
     }
 
     void Ability::spawn(int target_x, int target_y) {
         active = true;
-        launch(target_x,target_y);
+        launch(target_x, target_y);
     }
 
     void Ability::draw() {
-        drawSprite(abilitySprite[active*(effect+1)], l_x, l_y);
+        drawSprite(abilitySprite[active * (effect + 1)], l_x, l_y);
     }
 
     void Ability::reset() {
         baseSpeed_x = 0;
         baseSpeed_y = 0;
-        l_x=resetPos_x;
-        l_y=resetPos_y;
+        modifier = 1;
+        l_x = resetPos_x;
+        l_y = resetPos_y;
+        active = false;
     }
 
     void Ability::checkAllCollisions(Platform *player) {
-        int bottomSide = 600 - this->s_y;
-        int rightSide = 800 - this->s_x;
+        int bottomSide = screenHeight - this->s_y;
+        int rightSide = screenWidth - this->s_x;
         //TODO read actual window size
 
         //TODO change to branchless?
         if ((this->l_x <= 0) || (this->l_x >= rightSide)) {
-//            std::cout << "amongus" << std::endl;
             baseSpeed_x = -baseSpeed_x;
-            setModifier(modifier+0.1);
-     }
+            setModifier(modifier + 0.1);
+        }
         //TODO change to branchless?
         if ((this->l_y <= 0) || (this->l_y >= bottomSide)) {
-//            std::cout << "amongus" << std::endl;
             baseSpeed_y = -baseSpeed_y;
+            setModifier(modifier + 0.1);
         }
         if (this->checkCollision(player)) {
-//            std::cout << "amongus" << std::endl;
-
             reset();
-//            player
+            player->applyModifier(effect);
         }
     }
 
