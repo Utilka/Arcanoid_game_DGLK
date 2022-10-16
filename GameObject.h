@@ -6,13 +6,20 @@
 #ifndef ARCANOID_CMAKE_GAMEOBJECT_H
 #define ARCANOID_CMAKE_GAMEOBJECT_H
 
+extern bool gameOver;
+extern bool winAnimation;
+
 namespace MyGame {
+
     class GameObject {
     public:
 
         static Sprite *sprite;
         double l_x{}, l_y{};
         int s_x{}, s_y{};
+
+        int currentSprite;
+        int tickCount;
 
         GameObject();
 
@@ -24,18 +31,27 @@ namespace MyGame {
 
         void changeSize(int size_x, int size_y);
 
-        virtual void Draw();
+        virtual void draw();
+
+        static void initSprites();
     };
 
     class Platform : public GameObject {
     public:
         static Sprite *sprite;
+        static Sprite *platformSprites[3];
+        double baseSpeed_x{1}, baseSpeed_y{1};
+        //Modifier modifierList{1};
+
+        static void initSprites(int size_x,int size_y);
+
         Platform();
 
-        Platform(double location_x, double location_y, int size_x, int size_y);
-        void Draw() override;
 
-        void ApplyAbility();
+        Platform(double location_x, double location_y, int size_x, int size_y);
+        void draw() override;
+
+        void applyModifier(int effect);
 
     };
 
@@ -48,6 +64,7 @@ namespace MyGame {
         int maxPoints{1};
         int hitPoints{1};
 
+        static void initSprites(int size_x,int size_y);
         Block();
 
         // spriteSelector expects index from filename of undamaged block
@@ -55,14 +72,16 @@ namespace MyGame {
 
         void damage(int value = 1);
 
-        void Draw() override;
+        void draw() override;
     };
 
     class Ball : public GameObject {
     public:
         static Sprite *sprite;
+        static Sprite *ballSprites[36];
         double baseSpeed_x{}, baseSpeed_y{},modifier{1};
 
+        static void initSprites(int size_x,int size_y);
         Ball();
 
         Ball(double location_x, double location_y, int size_x, int size_y);
@@ -83,7 +102,9 @@ namespace MyGame {
         // modifier value is limited between 0.4 and 3
         void setModifier(double newValue);
 
-        void Draw() override;
+        void draw() override;
+
+        void ChangeSize(int multiplier);
     };
 
     class Ability : public Ball {
@@ -94,10 +115,12 @@ namespace MyGame {
         int effect{0};
         int resetPos_x{0}, resetPos_y{0};
 
+        static void initSprites(int size_x,int size_y);
+
         Ability();
         Ability(int ef, double location_x, double location_y,int size_x, int size_y);
 
-        void Draw() override;
+        void draw() override;
         void spawn(int target_x, int target_y);
 
         void reset();

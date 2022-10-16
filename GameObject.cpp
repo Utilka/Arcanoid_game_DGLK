@@ -11,8 +11,14 @@
 
 #define INIT_BALL_SPEED 1
 
+bool gameOver = false;
+bool winAnimation = false;
+
+#define RELATIVE_PLATFORM_WIDTH 1/8
+#define PLATFORM_DIMENSIONS 128/485
 
 namespace MyGame {
+
     GameObject::GameObject() = default;
 
     MyGame::GameObject::GameObject(double location_x, double location_y, int size_x, int size_y) {
@@ -20,6 +26,8 @@ namespace MyGame {
         l_y = location_y;
         s_x = size_x;
         s_y = size_y;
+        currentSprite = 0;
+        tickCount = 1;
     }
 
     void GameObject::changeSprite(Sprite *newSprite) {
@@ -38,7 +46,7 @@ namespace MyGame {
         setSpriteSize(sprite, s_x, s_y);
     }
 
-    void GameObject::Draw() {
+    void GameObject::draw() {
         drawSprite(sprite, l_x, l_y);
     }
 
@@ -54,9 +62,34 @@ namespace MyGame {
 
     }
 
-    void Platform::Draw() {
-        drawSprite(sprite, l_x, l_y);
+    void Platform::draw() {
+//        drawSprite(sprite, l_x, l_y);
+        drawSprite(platformSprites[currentSprite], l_x, l_y);
+
+        if (tickCount == 20){
+            currentSprite ++;
+            tickCount = 0;
+        }
+        if (currentSprite == 3){
+            currentSprite = 0;
+        }
+        tickCount++;
     }
+
+    void Platform::initSprites(int size_x,int size_y) {
+        for (int i = 0; i < 3; i++) {
+            std::string n = std::to_string(i);
+
+            std::string spriteNameStr("data/platform-");
+            spriteNameStr.append(n + ".png");
+            const char *spriteName = spriteNameStr.c_str();
+
+            platformSprites[i] = createSprite(spriteName);
+            setSpriteSize(platformSprites[i], size_x, size_y);
+        }
+
+    }
+
 
 
     Ball::Ball() = default;
@@ -66,6 +99,13 @@ namespace MyGame {
         baseSpeed_x = 0;
         baseSpeed_y = 0;
         modifier = 1;
+
+    }
+
+    void Ball::ChangeSize(int multiplier) {
+        for (int i = 0; i < 36; i++) {
+            setSpriteSize(MyGame::Ball::ballSprites[i], s_x*multiplier, s_y*multiplier);
+        }
     }
 
 // launches a ball into given direction with predetermined speed
@@ -89,25 +129,35 @@ namespace MyGame {
 
     void
     Ball::checkAllCollisions(Platform *player, Block *blockList, int blockListSize) {
-        int bottomSide = 600 - this->s_y;
+        int bottomSide = 600 + (this->s_y * 5);
         int rightSide = 800 - this->s_x;
         //TODO read actual window size
 
         //TODO change to branchless?
         if ((this->l_x <= 0) || (this->l_x >= rightSide)) {
-//            std::cout << "amongus" << std::endl;
             baseSpeed_x = -baseSpeed_x;
             setModifier(modifier+0.1);
 
 
         }
         //TODO change to branchless?
-        if ((this->l_y <= 0) || (this->l_y >= bottomSide)) {
-//            std::cout << "amongus" << std::endl;
+        if (this->l_y <= 0) {
             baseSpeed_y = -baseSpeed_y;
             setModifier(modifier+0.1);
-
         }
+
+        if (this->l_y >= bottomSide) {
+            std::cout << "Game Over" << std::endl;
+            gameOver = true;
+            Ball::ChangeSize(3);
+            int w_w, w_h;//window_width window_height
+            getScreenSize(w_w, w_h);
+            changeLocation(w_w/2 - s_x, 0 - s_y*5);
+        }
+
+//        if (this->l_y >= bottomSide) {
+//            baseSpeed_y = -baseSpeed_y;
+//        }
 
         if (this->checkCollision(player)) {
 //            std::cout << "amongus" << std::endl;
@@ -166,8 +216,17 @@ namespace MyGame {
         return collisionSide(verticalCollision + horizontalCollision * 2);
     }
 
-    void Ball::Draw() {
-        drawSprite(sprite, l_x, l_y);
+    void Ball::draw() {
+        drawSprite(ballSprites[currentSprite], l_x, l_y);
+
+        if (tickCount == 20){
+            currentSprite ++;
+            tickCount = 0;
+        }
+        if (currentSprite == 36){
+            currentSprite = 0;
+        }
+        tickCount++;
     }
 
     double Ball::getSpeed_x() const {
@@ -180,6 +239,20 @@ namespace MyGame {
 
     void Ball::setModifier(double newValue) {
         modifier = std::max(std::min(newValue,2.0),0.4);
+    }
+
+    void Ball::initSprites(int size_x, int size_y) {
+        for (int i = 0; i < 36; i++) {
+            std::string n = std::to_string(i);
+
+            std::string spriteNameStr("data/Amogus/65-amogus-");
+            spriteNameStr.append(n + ".png");
+            const char *spriteName = spriteNameStr.c_str();
+
+            MyGame::Ball::ballSprites[i] = createSprite(spriteName);
+            setSpriteSize(MyGame::Ball::ballSprites[i], size_x, size_y);
+        }
+
     }
 
 
@@ -197,10 +270,21 @@ namespace MyGame {
         hitPoints -= value;
     }
 
-    void Block::Draw() {
+    void Block::draw() {
 
             drawSprite(blockSprite[std::min(hitPoints,3)], l_x, l_y);
         }
+
+    void Block::initSprites(int size_x, int size_y) {
+        Block::blockSprite[0] = createSprite("data/0-Block.png");
+        setSpriteSize(Block::blockSprite[0], size_x, size_y);
+        Block::blockSprite[1] = createSprite("data/1-Block.png");
+        setSpriteSize(Block::blockSprite[1], size_x, size_y);
+        Block::blockSprite[2] = createSprite("data/2-Block.png");
+        setSpriteSize(Block::blockSprite[2], size_x, size_y);
+        Block::blockSprite[3] = createSprite("data/3-Block.png");
+        setSpriteSize(Block::blockSprite[3], size_x, size_y);
+    }
 
     Ability::Ability() = default;
 
@@ -221,7 +305,7 @@ namespace MyGame {
         launch(target_x,target_y);
     }
 
-    void Ability::Draw() {
+    void Ability::draw() {
         drawSprite(abilitySprite[active*(effect+1)], l_x, l_y);
     }
 
@@ -252,7 +336,18 @@ namespace MyGame {
 //            std::cout << "amongus" << std::endl;
 
             reset();
+//            player
         }
+    }
+
+    void Ability::initSprites(int size_x, int size_y) {
+        Ability::abilitySprite[0] = createSprite("data/0-Block.png");
+        setSpriteSize(Ability::abilitySprite[0], size_x, size_y);
+        Ability::abilitySprite[1] = createSprite("data/41-Breakout-Tiles.png");
+        setSpriteSize(Ability::abilitySprite[1], size_x, size_y);
+        Ability::abilitySprite[2] = createSprite("data/42-Breakout-Tiles.png");
+        setSpriteSize(Ability::abilitySprite[2], size_x, size_y);
+
     }
 
 }
